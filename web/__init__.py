@@ -95,7 +95,7 @@ def webApp():
         embed, _, _ = encoder.embed_utterance(encoder_wav, return_partials=True)
         
         # Load input text
-        texts = request.form["text"].split("\n")
+        texts = filter(None, request.form["text"].split("\n"))
         punctuation = '！，。、,' # punctuate and split/clean text
         processed_texts = []
         for text in texts:
@@ -108,14 +108,15 @@ def webApp():
         embeds = [embed] * len(texts)
         specs = current_synt.synthesize_spectrograms(texts, embeds)
         spec = np.concatenate(specs, axis=1)
+        sample_rate = Synthesizer.sample_rate
         if "vocoder" in request.form and request.form["vocoder"] == "WaveRNN":
-            wav = rnn_vocoder.infer_waveform(spec)
+            wav, sample_rate = rnn_vocoder.infer_waveform(spec)
         else:
-            wav = gan_vocoder.infer_waveform(spec)
+            wav, sample_rate = gan_vocoder.infer_waveform(spec)
 
         # Return cooked wav
         out = io.BytesIO()
-        write(out, Synthesizer.sample_rate, wav.astype(np.float32))
+        write(out, sample_rate, wav.astype(np.float32))
         return Response(out, mimetype="audio/wav")
         #flask把out的二进制流直接发过去
         #return Response(out.getvalue(), mimetype="audio/wav")

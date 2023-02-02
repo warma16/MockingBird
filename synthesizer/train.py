@@ -12,11 +12,11 @@ from synthesizer.utils.symbols import symbols
 from synthesizer.utils.text import sequence_to_text
 from vocoder.display import *
 from datetime import datetime
+import json
 import numpy as np
 from pathlib import Path
-import sys
 import time
-
+import os
 
 def np_now(x: torch.Tensor): return x.detach().cpu().numpy()
 
@@ -75,6 +75,13 @@ def train(run_id: str, syn_dir: str, models_dir: str, save_every: int,
         if num_chars != loaded_shape[0]:
             print("WARNING: you are using compatible mode due to wrong sympols length, please modify varible _characters in `utils\symbols.py`")
             num_chars != loaded_shape[0]
+                # Try to scan config file
+        model_config_fpaths = list(weights_fpath.parent.rglob("*.json"))
+        if len(model_config_fpaths)>0 and model_config_fpaths[0].exists():
+            with model_config_fpaths[0].open("r", encoding="utf-8") as f:
+                hparams.loadJson(json.load(f))
+        else:  # save a config
+            hparams.dumpJson(weights_fpath.parent.joinpath(run_id).with_suffix(".json"))
 
 
     model = Tacotron(embed_dims=hparams.tts_embed_dims,
@@ -257,7 +264,19 @@ def train(run_id: str, syn_dir: str, models_dir: str, save_every: int,
                                        loss=loss,
                                        hparams=hparams,
                                        sw=sw)
-
+                    MAX_SAVED_COUNT = 20
+                    if (step / hparams.tts_eval_interval) % MAX_SAVED_COUNT == 0:
+                        # clean up and save last MAX_SAVED_COUNT;
+                        plots = next(os.walk(plot_dir), (None, None, []))[2]
+                        for plot in plots[-MAX_SAVED_COUNT:]:
+                            os.remove(plot_dir.joinpath(plot))
+                        mel_files = next(os.walk(mel_output_dir), (None, None, []))[2]
+                        for mel_file in mel_files[-MAX_SAVED_COUNT:]:
+                            os.remove(mel_output_dir.joinpath(mel_file))
+                        wavs = next(os.walk(wav_dir), (None, None, []))[2]
+                        for w in wavs[-MAX_SAVED_COUNT:]:
+                            os.remove(wav_dir.joinpath(w))
+                        
                 # Break out of loop to update training schedule
                 if step >= max_step:
                     break
