@@ -32,7 +32,8 @@ def webApp():
     synthesizers_cache = {}
     encoder.load_model(Path("encoder/saved_models/pretrained.pt"))
     rnn_vocoder.load_model(Path("vocoder/saved_models/pretrained/pretrained.pt"))
-    gan_vocoder.load_model(Path("vocoder/saved_models/pretrained/g_hifigan.pt"))
+    #gan_vocoder.load_model(Path("vocoder/saved_models/pretrained/g_hifigan.pt"))
+    gan_vocoder.load_model(Path("vocoder/saved_models/pretrained/nsf_hifigan"))
 
     def pcm2float(sig, dtype='float32'):
         """Convert PCM signal to floating point with a range from -1 to 1.
@@ -116,7 +117,10 @@ def webApp():
         out = io.BytesIO()
         write(out, Synthesizer.sample_rate, wav.astype(np.float32))
         return Response(out, mimetype="audio/wav")
-
+        #flask把out的二进制流直接发过去
+        #return Response(out.getvalue(), mimetype="audio/wav")
+        #检测文件是否存在用os模块
+        #
     @app.route('/', methods=['GET'])
     def index():
         return render_template("index.html")

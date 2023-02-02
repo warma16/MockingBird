@@ -27,8 +27,9 @@ def load_model(weights_fpath, verbose=True):
 
     if verbose:
         print("Building hifigan")
-
-    with open("./vocoder/hifigan/config_16k_.json") as f:
+    #conf_path="./vocoder/hifigan/config_16k_.json"
+    conf_path="./vocoder/hifigan/config_nsf.json"
+    with open(conf_path) as f:
         data = f.read()
     json_config = json.loads(data)
     h = AttrDict(json_config)
